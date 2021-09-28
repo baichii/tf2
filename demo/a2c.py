@@ -59,14 +59,14 @@ def tf_env_step(action):
     return tf.numpy_function(env_step, [action], [tf.float32, tf.int32, tf.int32])
 
 
-def run_episode(init_state, model, max_step):
+def run_episode(init_state, model, max_steps):
     action_probs = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
     values = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
-    rewards = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
+    rewards = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
 
     initial_state_shape = init_state.shape
     state = init_state
-    for t in range(max_step):
+    for t in tf.range(max_steps):
         state = tf.expand_dims(state, 0)
         action_logits_t, value = model(state)
 
@@ -86,19 +86,16 @@ def run_episode(init_state, model, max_step):
 
         # 存储reward
         rewards = rewards.write(t, reward)
-        print("ck: ", action_probs.stack(), values.stack(), rewards.stack(), tf.cast(done, tf.bool))
         if tf.cast(done, tf.bool):
-            print("break")
             break
-    print("sb")
-    print(action_probs, values, rewards)
+
     action_probs = action_probs.stack()
     values = values.stack()
     rewards = rewards.stack()
     return action_probs, values, rewards
 
 
-def get_expected_return(rewards, gamma, stadardize:bool):
+def get_expected_return(rewards, gamma, standardize=True):
     n = tf.shape(rewards)[0]
     returns = tf.TensorArray(dtype=tf.float32, size=n)
 
@@ -114,7 +111,7 @@ def get_expected_return(rewards, gamma, stadardize:bool):
 
     returns = returns.stack()[::-1]
 
-    if stadardize:
+    if standardize:
         returns = ((returns - tf.math.reduce_mean(returns)) / (tf.math.reduce_std(returns) + eps))
 
     return returns
@@ -125,11 +122,9 @@ def compute_loss(action_probs, values, returns):
     advantage = returns - values
 
     action_log_probs = tf.math.log(action_probs)
-    actor_loss = - tf.math.reduce_sum(action_log_probs * advantage)
-
-    huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losss.Reduction.SUM)
-    critic_loss = huber_loss(values, actor_loss)
-
+    actor_loss = -tf.math.reduce_sum(action_log_probs * advantage)
+    huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
+    critic_loss = huber_loss(values, returns)
     return actor_loss + critic_loss
 
 
@@ -146,7 +141,6 @@ def train_step(init_state, model, optimizer, gamma, max_steps_per_episode):
         loss = compute_loss(action_probs, values, returns)
 
     grads = tape.gradient(loss, model.trainable_variables)
-
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
     episode_reward = tf.math.reduce_sum(rewards)
@@ -173,7 +167,8 @@ def demo():
 
             episode_reward = int(temp_reward)
 
-            episodes_reward = statistics.mean(episode_reward)
+            episodes_reward.append(episode_reward)
+            running_reward = statistics.mean(episodes_reward)
 
             t.set_description(f'Episode {i}')
             t.set_postfix(episode_reward=episode_reward, running_reward=running_reward)
@@ -188,4 +183,3 @@ def demo():
 
 if __name__ == '__main__':
     demo()
-

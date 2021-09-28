@@ -5,24 +5,17 @@
 @功能 ：
 """
 
-from __future__ import absolute_import
-from __future__ import division
-
-
-import sys
 import tensorflow as tf
 
 
-a = tf.constant([1, 2, 3])
-b = tf.constant([4, 5, 6])
+# @tf.function
+def fib(n):
+    ta = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
+    ta = ta.unstack([0, 1])
+    print(ta.stack())
+    print(ta.read(1))
+    # return ta.stack()
 
-c = tf.add(a, b)
 
+print(fib(2))
 
-print(c)
-
-# x = tf.keras.backend.placeholder(tf.float32)
-# y = tf.keras.backend.placeholder(tf.float32)
-x = tf.placeholder(tf.int16)
-print(x)
-# print(sys.getsizeof(x))
