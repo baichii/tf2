@@ -13,10 +13,10 @@ import tensorflow_text as text
 
 
 # 加载数据
-examples, metadata = tfds.load("ted_hrlr_translate/pt_to_en", with_info=True, as_supervised=True)
-train_examples, val_examples = examples["train"], examples["validation"]
-train_en = train_examples.map(lambda pt, en: en)
-train_pt = train_examples.map(lambda pt, en: pt)
+# examples, metadata = tfds.load("ted_hrlr_translate/pt_to_en", with_info=True, as_supervised=True)
+# train_examples, val_examples = examples["train"], examples["validation"]
+# train_en = train_examples.map(lambda pt, en: en)
+# train_pt = train_examples.map(lambda pt, en: pt)
 
 
 # 建立词汇表
