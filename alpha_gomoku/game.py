@@ -57,7 +57,6 @@ class Board:
 
     def do_move(self, move):
         self.states[move] = self.cur_player
-        print(self.availables, move)
         self.availables.remove(move)
         self.cur_player = (self.players[0] if self.cur_player == self.players[1] else self.players[1])
         self.last_move = move
@@ -173,15 +172,15 @@ class Game:
             end, winner = self.board.game_end()
 
             if end:
-                winner_z = np.zeros(len(current_players))
+                winners_z = np.zeros(len(current_players))
                 if winner != -1:
-                    winner_z[np.array(current_players) == winner] = 1.
-                    winner_z[np.array(current_players) != winner] = -1.
+                    winners_z[np.array(current_players) == winner] = 1.0
+                    winners_z[np.array(current_players) != winner] = -1.0
                 player.reset_player()
                 if is_shown:
                     if winner != -1:
                         print("Game end. Winner is ", winner)
                     else:
                         print("Game end. Tie")
-            return winner, zip(states, mcts_probs, winner_z)
+                return winner, zip(states, mcts_probs, winners_z)
 

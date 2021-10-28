@@ -7,7 +7,7 @@
 
 import tensorflow as tf
 from tensorflow.keras import losses, optimizers, layers, Model
-from
+from alpha_gomoku.game import Game, Board
 
 
 class Model(Model):
@@ -49,27 +49,40 @@ class PolicyValueNet:
     def __init__(self, board_width, board_height, model_file=None):
         self.board_width = board_width
         self.board_height = board_height
-        self.policy_value_net = Model(board_width, board_height)
-        self.optimizer = optimizers.Adam(lr=1e-3)
+        self.model = Model(board_width, board_height)
+        self.optimizer = optimizers.Adam(learning_rate=1e-3)
 
         if model_file:
             self.policy_value_net.load_weights(model_file)
 
+    def policy_value(self, state_batch):
+        log_act_probs, values = self.model(state_batch)
+        act_probs = tf.squeeze(tf.exp(log_act_probs)).numpy()
+        values = tf.squeeze(values).numpy()
+        return act_probs, values
 
-    def policy_value_fn(self, board):
-        pass
+    def policy_value_fn(self, board: Board):
+        legal_positions = board.availables
+        current_state = board.cur_state().reshape(-1, 4, self.board_width, self.board_height)
+        act_probs, values = self.model(current_state)
+        act_probs = tf.exp(act_probs)
+        act_probs = zip(legal_positions, tf.squeeze(act_probs).numpy()[legal_positions])
+        values = tf.squeeze(values).numpy()
+        return act_probs, values
 
-    def train_step(self, state_batch, mcts_probs, winner_batch, lr):
-        pass
+    @tf.function
+    def train_step(self, state_batch, mcts_probs, winner_batch):
+        with tf.GradientTape() as tape:
+            winner_batch = tf.cast(winner_batch, dtype=tf.float32)
+            log_act_probs, values = self.model(state_batch)
+            critic_loss = tf.reduce_sum(losses.mean_squared_error(values, winner_batch))
+            actor_loss = -tf.reduce_mean(mcts_probs * log_act_probs)
+            loss = critic_loss + actor_loss
+        grads = tape.gradient(loss, self.model.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
 
     def get_policy_param(self):
         pass
 
     def save_model(self, model_file):
         self.policy_value_net.save(model_file)
-
-
-if __name__ == '__main__':
-    test_tenor = tf.random.uniform(shape=(1, 6, 6, 4))
-    model = Model(6, 6)
-    print(model(test_tenor))

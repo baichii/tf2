@@ -1,17 +1,20 @@
 """
 @创建日期 ：2021/10/25
-@修改日期 ：2021/10/25
+@修改日期 ：2021/10/28
 @作者 ：jzj
-@功能 ：
+@功能 ：track
+       1、资格迹？重复采样
+       2、kl-divergence
 """
 
 import random
 import numpy as np
+import tensorflow as tf
 from collections import defaultdict, deque
 from alpha_gomoku.game import Board, Game
 from alpha_gomoku.mcts_pure import MCTSPlayer as MCTS_Pure_Player
 from alpha_gomoku.mcts_model import MCTSPlayer as MCTS_Model_PLAYER
-from alpha_gomoku.policy_value_net import Model as PolicyValueNet
+from alpha_gomoku.policy_value_net import PolicyValueNet
 
 
 class TrainPipeline:
@@ -27,10 +30,10 @@ class TrainPipeline:
         self.learn_rate = 2e-3
         self.lr_multiplier = 1.0
         self.temp = 1.0
-        self.n_playout = 400
+        self.n_playout = 10  # fixme: 400
         self.c_puct = 5
         self.buffer_size = 10000
-        self.batch_size = 512
+        self.batch_size = 32  # fixme 512
         self.data_buffer = deque(maxlen=self.buffer_size)
         self.play_batch_size = 1
         self.epochs = 5
@@ -43,39 +46,69 @@ class TrainPipeline:
             self.policy_value_net = PolicyValueNet(self.board_width, self.board_height, model_file=init_model)
         else:
             self.policy_value_net = PolicyValueNet(self.board_width, self.board_height)
-        self.mcts_player = MCTS_Model_PLAYER(self.policy_value_net,
+        self.mcts_player = MCTS_Model_PLAYER(self.policy_value_net.policy_value_fn,
                                              c_puct=self.c_puct,
                                              n_playout=self.n_playout,
                                              is_self_play=True)
 
     def get_equi_data(self, play_data):
-        pass
+        """
+        数据增强，包含对角线翻转和水平翻转
+        """
 
-    def collect_selfplay_data(self, n_games=1):
+        extend_data = []
+        for state, mcts_probs, winner in play_data:
+            for i in [1, 2, 3, 4]:
+                equi_state = np.array([np.rot90(s, i) for s in state])
+                equi_mcts_probs = np.rot90(np.flipud(mcts_probs.reshape(self.board_width, self.board_height)), i)
+            extend_data.append((equi_state, np.flipud(equi_mcts_probs).flatten(), winner))
+
+            equi_state = np.array([np.fliplr(s) for s in equi_state])
+            equi_mcts_probs = np.fliplr(equi_mcts_probs)
+            extend_data.append((equi_state, np.flipud(equi_mcts_probs).flatten(), winner))
+        return extend_data
+
+    def collect_self_play_data(self, n_games=1):
         for i in range(n_games):
             winner, play_data = self.game.start_self_play(self.mcts_player, temp=self.temp)
-            print(winner, play_data)
 
-    def train_step(self, bath):
+        play_data = list(play_data)[:]
+        self.episode_len = len(play_data)
+        play_data = self.get_equi_data(play_data)
+        self.data_buffer.extend(play_data)
+
+    def policy_update(self):
+        """
+        在data buffer 采样，像资格季
+        """
+        mini_batch = random.sample(self.data_buffer, self.batch_size)
+
+        state_batch = [data[0] for data in mini_batch]
+        mcts_prob_batch = [data[1] for data in mini_batch]
+        winner_batch = [data[2] for data in mini_batch]
+
+        state_batch = np.stack(state_batch)
+
+        old_probs, old_v = self.policy_value_net.policy_value(state_batch)
+
+        for i in range(self.epochs):
+            self.policy_value_net.train_step(state_batch, mcts_prob_batch, winner_batch)
+
+    def policy_evaluate(self):
         pass
 
     def run(self):
         for i in range(self.game_batch_num):
-            pass
+            self.collect_self_play_data(1)
+            print(f"batch: {i+1}, episode_len: {self.episode_len}, cum_buffer: {len(self.data_buffer)}")
+            if len(self.data_buffer) > self.batch_size:
+                self.policy_update()
 
 
 def demo():
     pipe = TrainPipeline()
-    pipe.collect_selfplay_data()
+    pipe.run()
 
 
 if __name__ == '__main__':
     demo()
-
-
-
-
-
-
-
-
