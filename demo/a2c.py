@@ -28,7 +28,7 @@ np.random.seed(SEED)
 tf.random.set_seed(SEED)
 
 eps = np.finfo(np.float32).eps
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)
 
 
 class ActorCritic(tf.keras.Model):
@@ -125,7 +125,7 @@ def compute_loss(action_probs, values, returns):
     actor_loss = -tf.math.reduce_sum(action_log_probs * advantage)
     huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
     critic_loss = huber_loss(values, returns)
-    return actor_loss + critic_loss
+    return (actor_loss + critic_loss)/10
 
 
 @tf.function
@@ -152,7 +152,7 @@ def demo():
     max_episodes = 10000
     max_steps_per_episode = 1000
 
-    reward_threshold = 195
+    reward_threshold = 180
     running_reward = 0
 
     gamma = 0.99
