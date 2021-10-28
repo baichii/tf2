@@ -13,7 +13,7 @@ class Board:
         self.width = int(kwargs.get("width", 8))
         self.height = int(kwargs.get("height", 8))
 
-        self.states = {}
+        self.states = {}  # 历史动作
         self.n_in_row = int(kwargs.get("n_in_row", 5))
         self.players = [1, 2]
 
@@ -39,6 +39,9 @@ class Board:
         return move
 
     def cur_state(self):
+        """
+        使用一个[4, width, height]的矩阵描述状态
+        """
         square_state = np.zeros((4, self.width, self.height))
         if self.states:
             moves, players = np.array(list(zip(*self.states.items())))
@@ -54,6 +57,7 @@ class Board:
 
     def do_move(self, move):
         self.states[move] = self.cur_player
+        print(self.availables, move)
         self.availables.remove(move)
         self.cur_player = (self.players[0] if self.cur_player == self.players[1] else self.players[1])
         self.last_move = move
@@ -121,7 +125,7 @@ class Game:
         self.board = board
 
     def start_play(self, player1, player2, start_player=0, is_shown=0):
-        self.board.reset()
+        self.board.reset(start_player)
 
         p1, p2 = self.board.players
         player1.set_player_ind(p1)
@@ -132,10 +136,10 @@ class Game:
             raise NotImplementedError
 
         while True:
-            current_player = self.board.cur_player
+            current_player = self.board.get_current_player()
             player_in_turn = players[current_player]
             move = player_in_turn.get_action(self.board)
-            self.do_move(move)
+            self.board.do_move(move)
             if is_shown:
                 raise NotImplementedError
             end, winner = self.board.game_end()
@@ -156,7 +160,7 @@ class Game:
         states, mcts_probs, current_players = [], [], []
 
         while True:
-            move, move_probs = player.get_action(self.board, temp, return_prob=True)
+            move, move_probs = player.get_action(self.board, temp, return_probs=True)
             # 状态存储
             states.append(self.board.cur_state())
             mcts_probs.append(move_probs)
@@ -180,3 +184,4 @@ class Game:
                     else:
                         print("Game end. Tie")
             return winner, zip(states, mcts_probs, winner_z)
+
