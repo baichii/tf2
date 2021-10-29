@@ -62,7 +62,7 @@ class TreeNode:
         self.update(leaf_value)
 
     def get_value(self, c_puct):
-        self._u = (c_puct * self._P * np.sqrt(self._parent.n_visits) / (1 + self._n_visits))
+        self._u = (c_puct * self._P * np.sqrt(self._parent._n_visits) / (1 + self._n_visits))
         return self._Q + self._u
 
     def is_leaf(self):
@@ -90,7 +90,7 @@ class MCTS(object):
             state.do_move(action)
 
         action_probs, _ = self._policy(state)
-        end, winner = self.game_end()
+        end, winner = state.game_end()
 
         if not end:
             node.expand(action_probs)

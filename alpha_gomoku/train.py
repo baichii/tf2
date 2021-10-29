@@ -7,6 +7,7 @@
        2、kl-divergence
 """
 
+import time
 import random
 import numpy as np
 import tensorflow as tf
@@ -30,7 +31,7 @@ class TrainPipeline:
         self.learn_rate = 2e-3
         self.lr_multiplier = 1.0
         self.temp = 1.0
-        self.n_playout = 10  # fixme: 400
+        self.n_playout = 100  # fixme: 400
         self.c_puct = 5
         self.buffer_size = 10000
         self.batch_size = 32  # fixme 512
@@ -94,8 +95,21 @@ class TrainPipeline:
         for i in range(self.epochs):
             self.policy_value_net.train_step(state_batch, mcts_prob_batch, winner_batch)
 
-    def policy_evaluate(self):
-        pass
+    def policy_evaluate(self, n_games=10):
+        # current_mcts_player = MCTS_Model_PLAYER(self.policy_value_net.policy_value_fn,
+        #                                         c_puct=self.c_puct,
+        #                                         n_playout=self.n_playout)
+
+        current_mcts_player = MCTS_Pure_Player(c_puct=5, n_playout=100)
+
+        pure_mcts_player = MCTS_Pure_Player(c_puct=5, n_playout=100)
+
+        win_cnt = defaultdict(int)
+        for i in range(n_games):
+            winner = self.game.start_play(current_mcts_player, pure_mcts_player, start_player=i % 2, is_shown=False)
+            win_cnt[winner] += 1
+        win_ratio = (1.0 * win_cnt[1] + 0.5 * win_cnt[-1]) / n_games
+        print("mcts win_ratio: ", win_ratio)
 
     def run(self):
         for i in range(self.game_batch_num):
@@ -107,7 +121,11 @@ class TrainPipeline:
 
 def demo():
     pipe = TrainPipeline()
-    pipe.run()
+    # pipe.run()
+    for i in range(20):
+        t1 = time.time()
+        pipe.policy_evaluate(10)
+        print(f"epoch {i+1}, run time: {time.time() - t1:.4f}s")
 
 
 if __name__ == '__main__':
