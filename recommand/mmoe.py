@@ -6,6 +6,7 @@
 """
 
 import tensorflow as tf
+from tensorflow.keras import losses
 from tensorflow.keras import layers, models
 
 
@@ -21,5 +22,9 @@ a = tf.random.uniform(shape=(2, 512))
 b = tf.random.uniform(shape=(512, 64, 4))
 
 print(tf.tensordot(a, b, axes=1))
+
+
+
+
 
 

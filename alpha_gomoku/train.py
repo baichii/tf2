@@ -101,8 +101,9 @@ class TrainPipeline:
         #                                         n_playout=self.n_playout)
 
         current_mcts_player = MCTS_Pure_Player(c_puct=5, n_playout=100)
+        print(current_mcts_player.mcts._root._children)
 
-        pure_mcts_player = MCTS_Pure_Player(c_puct=5, n_playout=100)
+        pure_mcts_player = MCTS_Pure_Player(c_puct=5, n_playout=200)
 
         win_cnt = defaultdict(int)
         for i in range(n_games):

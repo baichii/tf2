@@ -91,7 +91,6 @@ class MCTS(object):
 
         action_probs, _ = self._policy(state)
         end, winner = state.game_end()
-
         if not end:
             node.expand(action_probs)
 
@@ -160,4 +159,18 @@ class MCTSPlayer:
         return "MCTS {}".format(self.player)
 
 
+def test():
+    from alpha_gomoku.game import Game, Board
+    board = Board(width=6, height=6, n_in_row=4)
+    game = Game(board)
 
+    player1 = MCTSPlayer(c_puct=5, n_playout=10)
+    player2 = MCTSPlayer(c_puct=5, n_playout=100)
+
+    # for i in range(10):
+    winner = game.start_play(player1, player2, start_player=1, is_shown=False)
+    # print(winner)
+
+
+if __name__ == '__main__':
+    test()
