@@ -2,7 +2,7 @@
 @创建日期 ：2021/10/16
 @修改日期 ：2021/10/16
 @作者 ：jzj
-@功能 ：
+@功能 ：https://www.tensorflow.org/text/tutorials/transformer#run_inference
 """
 
 import tensorflow as tf
@@ -25,7 +25,6 @@ def scaled_dot_product_attention(q, k, v, mask):
         scaled_attention_logits += (mask * -1e9)
 
     attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
-
     output = tf.matmul(attention_weights, v)
 
     return output, attention_weights
@@ -84,7 +83,6 @@ class MultiHeadAttention(layers.Layer):
         scaled_attention, attention_weights = scaled_dot_product_attention(q, k, v, mask)
         scaled_attention = tf.transpose(scaled_attention, [0, 2, 1, 3])
         concat_attention = tf.reshape(scaled_attention, (batch_size, -1, self.d_model))
-
         output = self.dense(concat_attention)
         return output, attention_weights
 
@@ -305,6 +303,8 @@ def demo7():
 
 
 if __name__ == '__main__':
-    demo7()
+    # demo1()
+    demo2()
+    # demo7()
     # demo5()
     # demo6()
