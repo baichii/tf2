@@ -67,3 +67,11 @@ class PointerLSTM(layers.Layer):
         else:
             initial_states = self.decoder.get_initial_state(x_input)
 
+        constants = []
+        pre_processed_input, _, constants = self.decoder.process_inputs(x_input,
+                                                                        initial_states,
+                                                                        constants)
+
+        constants.append(en_seq)
+        last_output, outputs, states = layers.RNN
+
